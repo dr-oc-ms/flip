@@ -599,9 +599,12 @@ document.getElementById("overlay").addEventListener("click", e => { if (e.target
 /* =========================================================
    LERN-SESSION / AUSSCHEIDUNGSPRINZIP
    ========================================================= */
+const SAFE_SAMPLE_SIZE = 15;
+
 function startSession(name) {
   activeSet = name;
-  pool = shuffle(SETS[name].slice());
+  const allWords = SETS[name].slice();
+  pool = isSafe(name) ? sampleRandom(allWords, SAFE_SAMPLE_SIZE) : shuffle(allWords);
   document.getElementById("home-screen").classList.remove("active");
   document.getElementById("learn-screen").classList.add("active");
   renderLearnCarousel();
@@ -614,15 +617,22 @@ function shuffle(arr) {
   }
   return arr;
 }
+function sampleRandom(arr, n) {
+  const shuffled = shuffle(arr.slice());
+  return shuffled.slice(0, Math.min(n, shuffled.length));
+}
 
 function renderCard() {
   const inner = document.getElementById("stack-inner");
   const actionRow = document.getElementById("action-row");
   inner.innerHTML = "";
   if (!pool.length) {
+    const safeHint = isSafe(activeSet)
+      ? ""
+      : ` Wenn du dir sicher bist, kannst du die Vokabeln jetzt im Google Sheet auf "Stapel safe" umstellen.`;
     inner.innerHTML = `
       <div class="empty-state">
-        <p style="margin:0 0 20px;">Super gemacht! Alle Vokabeln aus <strong>${activeSet}</strong> wurden mindestens einmal richtig beantwortet.</p>
+        <p style="margin:0 0 20px;">Super gemacht! Alle Vokabeln aus <strong>${activeSet}</strong> wurden mindestens einmal richtig beantwortet.${safeHint}</p>
         <button id="btn-to-start" style="background:var(--btn-bg); color:var(--btn-text); border:none; border-radius:14px; padding:12px 24px; font-size:15px; font-weight:600; font-family:inherit; cursor:pointer;">Zur Set-Auswahl</button>
       </div>`;
     if (actionRow) actionRow.style.visibility = "hidden";
