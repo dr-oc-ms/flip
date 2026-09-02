@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Flip</title>
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231C1C1E'/%3E%3Ctext x='50' y='68' font-size='48' font-family='-apple-system,sans-serif' font-weight='700' fill='white' text-anchor='middle'%3EF%3C/text%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #000000;
+    --card-1: #1C1C1E;
+    --card-2: #232325;
+    --card-3: #2C2C2E;
+    --text-primary: #FFFFFF;
+    --text-secondary: #98989D;
+    --pill-bg: #2C2C2E;
+    --pill-icon: #FFFFFF;
+    --sheet-bg: #1C1C1E;
+    --sheet-row-border: #2C2C2E;
+    --btn-bg: #FFFFFF;
+    --btn-text: #000000;
+    --dot-active: #FFFFFF;
+    --dot-inactive: #48484A;
+    --safe-accent: #FFC22E;
+  }
+  [data-theme="light"] {
+    --bg: #F2F2F7;
+    --card-1: #FFFFFF;
+    --card-2: #FFFFFF;
+    --card-3: #FFFFFF;
+    --text-primary: #1C1C1E;
+    --text-secondary: #8E8E93;
+    --pill-bg: #1C1C1E;
+    --pill-icon: #FFFFFF;
+    --sheet-bg: #FFFFFF;
+    --sheet-row-border: #EDEDF2;
+    --btn-bg: #1C1C1E;
+    --btn-text: #FFFFFF;
+    --dot-active: #1C1C1E;
+    --dot-inactive: #C7C7CC;
+    --safe-accent: #D98E00;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
+    overscroll-behavior-y: contain;
+    height: 100%;
+    transition: background 0.25s ease;
+  }
+  #app {
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding-top: max(20px, env(safe-area-inset-top));
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+  }
+  .screen { display: none; flex-direction: column; flex: 1; }
+  .screen.active { display: flex; }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px 16px;
+  }
+  .logo { font-size: 22px; font-weight: 700; letter-spacing: -0.4px; margin: 0; }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--pill-bg);
+    border-radius: 18px;
+    padding: 8px 14px;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.25);
+  }
+  .pill button {
+    background: none; border: none; padding: 0; margin: 0;
+    display: flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; cursor: pointer;
+  }
+  .pill svg { width: 17px; height: 17px; stroke: var(--pill-icon); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ---- Home screen: wallet-style set carousel ---- */
+  .set-row {
+    display: flex; gap: 10px;
+    overflow-x: auto;
+    padding: 2px 20px 6px;
+    scrollbar-width: none; -ms-overflow-style: none;
+  }
+  .set-row::-webkit-scrollbar { display: none; }
+  .set-card {
+    flex: 0 0 auto;
+    width: 150px; height: 98px;
+    border-radius: 16px;
+    padding: 12px 13px;
+    box-sizing: border-box;
+    display: flex; flex-direction: column; justify-content: flex-end;
+    cursor: pointer;
+    opacity: 0.75;
+    transition: opacity 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.28);
+  }
+  .set-card.selected { opacity: 1; box-shadow: 0 3px 10px rgba(0,0,0,0.2), 0 0 0 2px var(--text-primary); }
+  .set-card.is-safe { box-shadow: 0 6px 14px rgba(0,0,0,0.28), 0 0 0 2px var(--safe-accent); }
+  .set-card p { margin: 0; color: #FFFFFF; }
+  .set-card .name { font-size: 19px; font-weight: 600; letter-spacing: -0.2px; }
+  .set-card .count { font-size: 12px; color: rgba(255,255,255,0.75); margin-top: 3px; }
+
+  .preview-panel {
+    margin: 18px 20px 0;
+    background: var(--sheet-bg);
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    position: relative;
+    overflow: hidden;
+  }
+  .preview-header {
+    margin: 0; padding: 12px 16px 6px;
+    font-size: 12px; font-weight: 600; color: var(--text-secondary);
+    letter-spacing: 0.3px; text-transform: uppercase;
+  }
+  .preview-list { max-height: 220px; overflow-y: auto; scrollbar-width: none; -ms-overflow-style: none; }
+  .preview-list::-webkit-scrollbar { display: none; }
+  .preview-row { padding: 10px 16px; border-top: 0.5px solid var(--sheet-row-border); }
+  .preview-row .en { margin: 0; font-size: 15px; font-weight: 500; color: var(--text-primary); }
+  .preview-row .de { margin: 2px 0 0; font-size: 13px; color: var(--text-secondary); }
+  .fade-bottom {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 32px;
+    background: linear-gradient(to bottom, transparent, var(--sheet-bg));
+    pointer-events: none;
+  }
+  .learn-btn {
+    display: block; width: calc(100% - 40px);
+    margin: 22px 20px 0;
+    background: var(--btn-bg); color: var(--btn-text);
+    border: none; border-radius: 14px;
+    padding: 14px 0; font-size: 16px; font-weight: 600;
+    font-family: inherit; cursor: pointer;
+  }
+
+  /* ---- Learn screen: Invites-style carousel ---- */
+  .carousel-wrap { overflow: hidden; padding: 4px 0 6px; }
+  .carousel {
+    display: flex; align-items: center;
+    overflow-x: auto; scroll-snap-type: x mandatory;
+    scrollbar-width: none; -ms-overflow-style: none;
+    padding: 0 calc(50% - 86px);
+  }
+  .carousel::-webkit-scrollbar { display: none; }
+  .carousel-card {
+    flex: 0 0 auto;
+    width: 172px; height: 180px;
+    border-radius: 20px;
+    padding: 16px; box-sizing: border-box;
+    display: flex; flex-direction: column; justify-content: flex-end;
+    margin: 0 5px;
+    scroll-snap-align: center;
+    cursor: pointer;
+    box-shadow: 0 12px 26px rgba(0,0,0,0.28);
+  }
+  .carousel-card.is-safe { box-shadow: 0 12px 26px rgba(0,0,0,0.28), 0 0 0 2px var(--safe-accent); }
+  .carousel-card p { margin: 0; color: #FFFFFF; }
+  .carousel-card .name { font-size: 19px; font-weight: 600; letter-spacing: -0.2px; }
+  .carousel-card .count { font-size: 12px; color: rgba(255,255,255,0.75); margin-top: 3px; }
+  .dots { display: flex; justify-content: center; gap: 6px; margin-top: 14px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--dot-inactive); }
+  .dot.active { background: var(--dot-active); }
+
+  .stack-area {
+    position: relative; flex: 1;
+    display: flex; align-items: center; justify-content: center;
+    margin-top: 20px; padding: 0 20px 10px;
+    perspective: 1200px;
+  }
+  .stack-inner { position: relative; width: 100%; max-width: 260px; height: min(56vh, 340px); }
+  .bg-card {
+    position: absolute; top: 0; left: 50%;
+    border-radius: 24px;
+    box-sizing: border-box;
+  }
+  .flash-card {
+    position: absolute; top: 0; left: 50%;
+    width: 86%; height: 100%;
+    transform: translateX(-50%);
+    border-radius: 24px;
+    background: var(--card-3);
+    box-shadow: 0 14px 30px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.2);
+    display: flex; align-items: center; justify-content: center;
+    padding: 30px 22px; text-align: center;
+    box-sizing: border-box;
+    cursor: grab;
+    touch-action: none;
+    transform-style: preserve-3d;
+    transition: transform 0.25s ease;
+  }
+  .flash-card .face { backface-visibility: hidden; position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px 22px; }
+  .flash-card .face.back { transform: rotateY(180deg); }
+  .flash-card .word { font-size: 22px; font-weight: 600; margin: 0 0 10px; letter-spacing: -0.4px; }
+  .flash-card .sub { font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin: 0; }
+  .empty-state { text-align: center; color: var(--text-secondary); font-size: 15px; padding: 0 30px; line-height: 1.6; }
+
+  /* ---- Preview overlay (bottom sheet) ---- */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    display: none; align-items: flex-end; justify-content: center;
+    z-index: 50;
+  }
+  .overlay.open { display: flex; }
+  .sheet {
+    width: 100%; max-width: 480px;
+    background: var(--bg);
+    border-radius: 24px 24px 0 0;
+    padding: 20px 0 max(20px, env(safe-area-inset-bottom));
+    max-height: 80vh; overflow: auto;
+  }
+  .sheet-handle { width: 36px; height: 4px; border-radius: 2px; background: var(--text-secondary); opacity: 0.4; margin: 0 auto 16px; }
+</style>
+</head>
+<body data-theme="dark">
+<div id="app">
+
+  <!-- HOME SCREEN -->
+  <div class="screen active" id="home-screen">
+    <div class="topbar">
+      <p class="logo">Flip</p>
+      <div class="pill">
+        <button id="home-dir-toggle" aria-label="Richtung umschalten">
+          <svg viewBox="0 0 24 24"><path d="M7 7h11M18 7l-4-4M18 7l-4 4M17 17H6M6 17l4 4M6 17l4-4"/></svg>
+        </button>
+        <button id="home-theme-toggle" aria-label="Dark/Light umschalten">
+          <svg viewBox="0 0 24 24"><path d="M21 12.5A8.5 8.5 0 1 1 11.5 3a7 7 0 0 0 9.5 9.5z"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="set-row" id="home-set-row"></div>
+    <div class="preview-panel">
+      <p class="preview-header" id="preview-header">Set &middot; 0 Vokabeln</p>
+      <div class="preview-list" id="preview-list"></div>
+      <div class="fade-bottom"></div>
+    </div>
+    <button class="learn-btn" id="learn-btn">Set lernen</button>
+    <p id="debug-line" style="text-align:left; font-size:11px; color:var(--text-secondary); margin-top:14px; opacity:0.8; padding:0 20px; word-break:break-word;"></p>
+  </div>
+
+  <!-- LEARN SCREEN -->
+  <div class="screen" id="learn-screen">
+    <div class="topbar">
+      <p class="logo">Flip</p>
+      <div class="pill">
+        <button id="learn-dir-toggle" aria-label="Richtung umschalten">
+          <svg viewBox="0 0 24 24"><path d="M7 7h11M18 7l-4-4M18 7l-4 4M17 17H6M6 17l4 4M6 17l4-4"/></svg>
+        </button>
+        <button id="learn-theme-toggle" aria-label="Dark/Light umschalten">
+          <svg viewBox="0 0 24 24"><path d="M21 12.5A8.5 8.5 0 1 1 11.5 3a7 7 0 0 0 9.5 9.5z"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="carousel-wrap">
+      <div class="carousel" id="learn-carousel"></div>
+    </div>
+    <div class="dots" id="learn-dots"></div>
+    <div class="stack-area">
+      <div class="stack-inner" id="stack-inner"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Preview overlay used from the learn-mode carousel -->
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <p class="preview-header" id="overlay-header" style="padding-left:20px;">Set</p>
+    <div class="preview-list" id="overlay-list" style="max-height:38vh; padding: 0 0 4px;"></div>
+    <button class="learn-btn" id="overlay-learn-btn">Set lernen</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script>
+/* =========================================================
+   KONFIGURATION
+   Trag hier den CSV-Link deines veröffentlichten
+   "Flip-Export"-Tabellenblatts ein (Datei > Freigeben >
+   Im Web veröffentlichen > Tabellenblatt "Flip-Export" >
+   Format: durch Kommas getrennte Werte (.csv)).
+   Solange CSV_URL leer ist, nutzt die App die eingebauten
+   Beispielwörter unten (SAMPLE_CSV) zum Testen.
+   ========================================================= */
+const APP_VERSION = "v8-fastmode-off";
+const CSV_URL = "https://raw.githubusercontent.com/dr-oc-ms/flip/main/data.csv";
+
+const SAMPLE_CSV = `English,German,In a Sentence,Flip
+adamant,"unnachgiebig, unerschütterlich, fest entschlossen",Despite mounting pressure from shareholders, the CEO remained adamant that the merger would not go ahead.,Stapel 005
+disdainful,"verächtlich, geringschätzig, hochmütig",She gave a disdainful glance at the cheap souvenirs before walking past the stall without a word.,Stapel 005
+perpetrator,"Täter, Straftäter",Police are still searching for the perpetrator of last night's break-in.,Stapel 005
+denouement,"Auflösung, Ausgang, Schlussteil einer Handlung",The novel's denouement ties up every loose thread, revealing the identity of the mysterious benefactor.,Stapel 005
+tacit,"stillschweigend, unausgesprochen, implizit",By saying nothing, the manager gave his tacit approval to the plan.,Stapel 005
+zeal,"Eifer, Begeisterung",The new volunteers approached their tasks with remarkable zeal.,Stapel 005
+incredulity,"Ungläubigkeit, Unglaube, Skepsis",He stared at the results with incredulity, unable to believe he had actually won.,Stapel 005
+affably,"freundlich, umgänglich, jovial",The host greeted each guest affably, making everyone feel instantly at ease.,Stapel 005
+barrister,"Prozessanwalt, GB",She was advised to brief a barrister to represent her in court.,Stapel 005
+tight deadlines,"knappe/enge Fristen",Are you good at meeting tight deadlines?,Stapel 004
+heavy workload,hohe Arbeitsbelastung,Would you be willing to take on a heavy workload?,Stapel 004
+close-knit community,eng verbundene Gemeinschaft,Would you enjoy being part of a close-knit community at work?,Stapel 004
+to be taken aback,"von jemanden oder etwas überrascht, verblüfft, geschockt sein",Have you ever been taken aback by someone's behaviour?,Stapel 004
+to take pleasure in something,"Freude/Vergnügen an etwas haben, sich an etwas erfreuen",What do you take pleasure in?,Stapel 004
+to convey normalcy,Normalität vermitteln,She tried to convey a sense of normalcy to the children despite the chaos around them.,Stapel 001
+lanky,"schlaksig, dürr",The lanky teenager towered over his classmates.,Stapel 001
+to pounce on something,"sich auf etwas stürzen, zuschnappen",The cat pounced on the mouse the moment it moved.,Stapel 001
+coy,"zurückhaltend, kokett",She gave a coy smile when asked about her new boyfriend.,Stapel 001
+to ride shotgun,auf dem Beifahrersitz mitfahren,I'll drive, you can ride shotgun.,Stapel 001`;
+
+/* =========================================================
+   CSV-Parsing über PapaParse (robust bei Kommas, Anführungs-
+   zeichen und Zeilenumbrüchen innerhalb von Zellen)
+   ========================================================= */
+function buildSets(csvText) {
+  const normalized = csvText.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const parsed = Papa.parse(normalized, {
+    header: true,
+    skipEmptyLines: true,
+    delimiter: ",",
+    quoteChar: '"',
+    escapeChar: '"',
+    newline: "\n",
+    fastMode: false
+  });
+  if (parsed.errors && parsed.errors.length) {
+    console.warn("PapaParse-Fehler:", parsed.errors);
+  }
+  const sets = {};
+  let total = 0;
+  parsed.data.forEach(r => {
+    const setName = (r["Flip"] || "").trim();
+    if (!setName) return;
+    if (!sets[setName]) sets[setName] = [];
+    sets[setName].push({
+      en: (r["English"] || "").trim(),
+      de: (r["German"] || "").trim(),
+      sentence: (r["In a Sentence"] || "").trim()
+    });
+    total++;
+  });
+  window.__flipDebug = { totalRows: parsed.data.length, matched: total, errors: parsed.errors.length, sets: Object.keys(sets).length, errorDetails: parsed.errors.slice(0, 8), rawSample: parsed.data.slice(0,1), badRows: parsed.errors.slice(0,3).map(e => parsed.data[e.row]) };
+  return sets;
+}
+
+/* =========================================================
+   STATE
+   ========================================================= */
+let SETS = {};
+let SET_NAMES = [];
+let previewSet = null;   // im Startbildschirm angeschautes Set
+let activeSet = null;    // im Lernmodus aktives Set
+let pool = [];           // verbleibende Vokabeln der aktuellen Runde
+let direction = localStorage.getItem("flip-direction") || "en-de";
+let theme = localStorage.getItem("flip-theme") || "dark";
+let flipped = false;
+
+const GRADIENTS = [
+  "linear-gradient(125deg,#3F2CC9 0%,#C21FA0 45%,#FF7A2E 100%)",
+  "linear-gradient(125deg,#E31C6E 0%,#F5541E 55%,#FFC22E 100%)",
+  "linear-gradient(125deg,#5B2CD9 0%,#E21C8E 50%,#FFA22E 100%)",
+  "linear-gradient(125deg,#2C2CD9 0%,#8E1CE2 55%,#F5541E 100%)",
+  "linear-gradient(125deg,#B31CE3 0%,#F5541E 60%,#FFC22E 100%)"
+];
+function gradientFor(name) {
+  let h = 0; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) % GRADIENTS.length;
+  return GRADIENTS[h];
+}
+function isSafe(name) { return /safe/i.test(name); }
+function naturalSort(a, b) { return a.localeCompare(b, "de", { numeric: true }); }
+
+/* =========================================================
+   INIT
+   ========================================================= */
+document.body.setAttribute("data-theme", theme);
+
+async function init() {
+  let csvText = SAMPLE_CSV;
+  if (CSV_URL) {
+    try {
+      const bustUrl = CSV_URL + (CSV_URL.includes("?") ? "&" : "?") + "t=" + Date.now();
+      const res = await fetch(bustUrl, { cache: "no-store" });
+      if (res.ok) csvText = await res.text();
+    } catch (e) { console.warn("Konnte CSV nicht laden, nutze Beispieldaten.", e); }
+  }
+  SETS = buildSets(csvText);
+  window.__flipRawSample = csvText.slice(0, 260);
+  const dbg = document.getElementById("debug-line");
+  if (dbg && window.__flipDebug) {
+    const d = window.__flipDebug;
+    let txt = `[${APP_VERSION}] ${d.matched} Vokabeln in ${d.sets} Stapeln geladen (${d.errors} Parse-Fehler)`;
+    if (d.errorDetails && d.errorDetails.length) {
+      txt += "\n" + d.errorDetails.map(e => `Zeile ${e.row}: ${e.code} - ${e.message}`).join("\n");
+    }
+    if (d.badRows && d.badRows.length) {
+      txt += "\n\nInhalt einer betroffenen Zeile:\n" + JSON.stringify(d.badRows[0]);
+    }
+    txt += "\n\nRohtext (erste 260 Zeichen):\n" + JSON.stringify(window.__flipRawSample);
+    dbg.style.whiteSpace = "pre-line";
+    dbg.textContent = txt;
+  }
+  SET_NAMES = Object.keys(SETS).sort(naturalSort);
+  if (!SET_NAMES.length) return;
+  previewSet = SET_NAMES[0];
+  renderHome();
+  renderLearnCarousel();
+}
+
+/* =========================================================
+   HOME SCREEN
+   ========================================================= */
+function renderHome() {
+  const row = document.getElementById("home-set-row");
+  row.innerHTML = "";
+  SET_NAMES.forEach(name => {
+    const el = document.createElement("div");
+    el.className = "set-card" + (name === previewSet ? " selected" : "") + (isSafe(name) ? " is-safe" : "");
+    el.style.background = gradientFor(name);
+    el.innerHTML = `<p class="name">${name}</p><p class="count">${SETS[name].length} Vokabeln</p>`;
+    el.addEventListener("click", () => { previewSet = name; renderHome(); });
+    row.appendChild(el);
+  });
+  document.getElementById("preview-header").textContent = `${previewSet} \u00b7 ${SETS[previewSet].length} Vokabeln`;
+  const list = document.getElementById("preview-list");
+  list.innerHTML = SETS[previewSet].map(w => `<div class="preview-row"><p class="en">${escapeHtml(w.en)}</p><p class="de">${escapeHtml(w.de)}</p></div>`).join("");
+}
+
+document.getElementById("learn-btn").addEventListener("click", () => startSession(previewSet));
+
+/* =========================================================
+   LEARN SCREEN - Karussell
+   ========================================================= */
+function renderLearnCarousel() {
+  const carousel = document.getElementById("learn-carousel");
+  const dots = document.getElementById("learn-dots");
+  carousel.innerHTML = "";
+  dots.innerHTML = "";
+  SET_NAMES.forEach((name, i) => {
+    const el = document.createElement("div");
+    el.className = "carousel-card" + (isSafe(name) ? " is-safe" : "");
+    el.style.background = gradientFor(name);
+    el.innerHTML = `<p class="name">${name}</p><p class="count">${SETS[name].length} Vokabeln</p>`;
+    el.addEventListener("click", () => openPreviewOverlay(name));
+    carousel.appendChild(el);
+
+    const dot = document.createElement("div");
+    dot.className = "dot" + (name === activeSet ? " active" : "");
+    dots.appendChild(dot);
+  });
+}
+
+function openPreviewOverlay(name) {
+  document.getElementById("overlay-header").textContent = `${name} \u00b7 ${SETS[name].length} Vokabeln`;
+  document.getElementById("overlay-list").innerHTML = SETS[name].map(w => `<div class="preview-row"><p class="en">${escapeHtml(w.en)}</p><p class="de">${escapeHtml(w.de)}</p></div>`).join("");
+  const btn = document.getElementById("overlay-learn-btn");
+  btn.textContent = name === activeSet ? "Wird gerade gelernt" : "Set lernen";
+  btn.onclick = () => {
+    if (activeSet && activeSet !== name && pool.length) {
+      if (!confirm(`Aktuelle Runde bei "${activeSet}" verwerfen und zu "${name}" wechseln?`)) return;
+    }
+    startSession(name);
+    closeOverlay();
+  };
+  document.getElementById("overlay").classList.add("open");
+}
+function closeOverlay() { document.getElementById("overlay").classList.remove("open"); }
+document.getElementById("overlay").addEventListener("click", e => { if (e.target.id === "overlay") closeOverlay(); });
+
+/* =========================================================
+   LERN-SESSION / AUSSCHEIDUNGSPRINZIP
+   ========================================================= */
+function startSession(name) {
+  activeSet = name;
+  pool = shuffle(SETS[name].slice());
+  document.getElementById("home-screen").classList.remove("active");
+  document.getElementById("learn-screen").classList.add("active");
+  renderLearnCarousel();
+  renderCard();
+}
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function renderCard() {
+  const inner = document.getElementById("stack-inner");
+  inner.innerHTML = "";
+  if (!pool.length) {
+    inner.innerHTML = `<div class="empty-state">Fertig! Alle Vokabeln aus <strong>${activeSet}</strong> wurden mindestens einmal richtig beantwortet. Wenn du dir sicher bist, kannst du den Status im Google Sheet auf "Set safe" setzen.</div>`;
+    return;
+  }
+  // Hintergrundkarten (Stapel-Optik)
+  const bg1 = document.createElement("div");
+  bg1.className = "bg-card"; bg1.style.background = "var(--card-1)";
+  bg1.style.width = "78%"; bg1.style.height = "100%"; bg1.style.transform = "translateX(calc(-50% + 18px))";
+  const bg2 = document.createElement("div");
+  bg2.className = "bg-card"; bg2.style.background = "var(--card-2)";
+  bg2.style.width = "83%"; bg2.style.height = "100%"; bg2.style.transform = "translateX(calc(-50% + 9px))";
+  inner.appendChild(bg1); inner.appendChild(bg2);
+
+  const card = document.createElement("div");
+  card.className = "flash-card";
+  flipped = false;
+
+  const word = pool[0];
+  const frontMain = direction === "en-de" ? word.en : word.de;
+  const frontSub = direction === "en-de" ? word.sentence : "";
+  const backMain = direction === "en-de" ? word.de : word.en;
+  const backSub = direction === "en-de" ? "" : word.sentence;
+
+  card.innerHTML = `
+    <div class="face front">
+      <p class="word">${escapeHtml(frontMain)}</p>
+      ${frontSub ? `<p class="sub">${escapeHtml(frontSub)}</p>` : ""}
+    </div>
+    <div class="face back">
+      <p class="word">${escapeHtml(backMain)}</p>
+      ${backSub ? `<p class="sub">${escapeHtml(backSub)}</p>` : ""}
+    </div>`;
+  inner.appendChild(card);
+  attachGestures(card);
+}
+
+/* Halten = umdrehen, seitlich wischen = nochmal, hoch wischen = gelernt */
+function attachGestures(card) {
+  let startX = 0, startY = 0, dragging = false, holdTimer = null, moved = false;
+
+  card.addEventListener("pointerdown", e => {
+    card.setPointerCapture(e.pointerId);
+    startX = e.clientX; startY = e.clientY; moved = false; dragging = true;
+    card.style.transition = "none";
+    holdTimer = setTimeout(() => {
+      if (!moved) { flipped = true; card.style.transform = "rotateY(180deg)"; }
+    }, 160);
+  });
+
+  card.addEventListener("pointermove", e => {
+    if (!dragging) return;
+    const dx = e.clientX - startX, dy = e.clientY - startY;
+    if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+      if (!moved) { clearTimeout(holdTimer); moved = true; }
+      card.style.transform = `translate(${dx}px, ${dy}px) rotate(${dx / 20}deg)`;
+    }
+  });
+
+  card.addEventListener("pointerup", e => {
+    dragging = false; clearTimeout(holdTimer);
+    const dx = e.clientX - startX, dy = e.clientY - startY;
+    card.style.transition = "transform 0.25s ease";
+
+    if (!moved) {
+      // war nur ein Halten -> zurückdrehen
+      card.style.transform = "rotateY(0deg)";
+      flipped = false;
+      return;
+    }
+    const absX = Math.abs(dx), absY = Math.abs(dy);
+    if (dy < -70 && absY > absX) {
+      // nach oben: gelernt
+      card.style.transform = `translateY(-600px) rotate(${dx / 10}deg)`;
+      card.style.opacity = "0";
+      pool.shift();
+      setTimeout(renderCard, 180);
+    } else if (absX > 70 && absX > absY) {
+      // seitlich: bleibt im Pool, nochmal ans Ende
+      const dir = dx > 0 ? 1 : -1;
+      card.style.transform = `translateX(${dir * 500}px) rotate(${dir * 20}deg)`;
+      card.style.opacity = "0";
+      const w = pool.shift(); pool.push(w);
+      setTimeout(renderCard, 180);
+    } else {
+      // zurückschnappen
+      card.style.transform = flipped ? "rotateY(180deg)" : "rotateY(0deg)";
+    }
+  });
+
+  card.addEventListener("pointercancel", () => {
+    dragging = false; clearTimeout(holdTimer);
+    card.style.transform = flipped ? "rotateY(180deg)" : "rotateY(0deg)";
+  });
+}
+
+/* =========================================================
+   TOGGLES
+   ========================================================= */
+function toggleDirection() {
+  direction = direction === "en-de" ? "de-en" : "en-de";
+  localStorage.setItem("flip-direction", direction);
+  if (document.getElementById("learn-screen").classList.contains("active")) renderCard();
+}
+function toggleTheme() {
+  theme = theme === "dark" ? "light" : "dark";
+  localStorage.setItem("flip-theme", theme);
+  document.body.setAttribute("data-theme", theme);
+}
+document.getElementById("home-dir-toggle").addEventListener("click", toggleDirection);
+document.getElementById("learn-dir-toggle").addEventListener("click", toggleDirection);
+document.getElementById("home-theme-toggle").addEventListener("click", toggleTheme);
+document.getElementById("learn-theme-toggle").addEventListener("click", toggleTheme);
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+init();
+</script>
+</body>
+</html>
