@@ -166,6 +166,8 @@
     box-shadow: 0 12px 26px rgba(0,0,0,0.28);
   }
   .carousel-card.is-safe { box-shadow: 0 12px 26px rgba(0,0,0,0.28), 0 0 0 2px var(--safe-accent); }
+  .carousel-card { opacity: 0.6; transition: opacity 0.25s ease, box-shadow 0.25s ease; }
+  .carousel-card.active { opacity: 1; box-shadow: 0 14px 30px rgba(0,0,0,0.35), 0 0 0 2px var(--text-primary); }
   .carousel-card p { margin: 0; color: #FFFFFF; }
   .carousel-card .name { font-size: 19px; font-weight: 600; letter-spacing: -0.2px; }
   .carousel-card .count { font-size: 12px; color: rgba(255,255,255,0.75); margin-top: 3px; }
@@ -432,15 +434,46 @@ function renderLearnCarousel() {
   SET_NAMES.forEach((name, i) => {
     const el = document.createElement("div");
     el.className = "carousel-card" + (isSafe(name) ? " is-safe" : "");
+    el.dataset.name = name;
     el.style.background = gradientFor(name);
     el.innerHTML = `<p class="name">${name}</p><p class="count">${SETS[name].length} Vokabeln</p>`;
     el.addEventListener("click", () => openPreviewOverlay(name));
     carousel.appendChild(el);
 
     const dot = document.createElement("div");
-    dot.className = "dot" + (name === activeSet ? " active" : "");
+    dot.className = "dot";
     dots.appendChild(dot);
   });
+
+  updateActiveCarouselCard();
+  carousel.addEventListener("scroll", debounce(updateActiveCarouselCard, 80));
+
+  // beim Öffnen automatisch auf das aktive Set zentrieren
+  if (activeSet) {
+    const target = [...carousel.children].find(c => c.dataset.name === activeSet);
+    if (target) target.scrollIntoView({ block: "nearest", inline: "center", behavior: "auto" });
+  }
+}
+
+function updateActiveCarouselCard() {
+  const carousel = document.getElementById("learn-carousel");
+  if (!carousel) return;
+  const cards = [...carousel.children];
+  if (!cards.length) return;
+  const center = carousel.scrollLeft + carousel.clientWidth / 2;
+  let closest = cards[0], closestDist = Infinity, closestIndex = 0;
+  cards.forEach((c, i) => {
+    const dist = Math.abs((c.offsetLeft + c.offsetWidth / 2) - center);
+    if (dist < closestDist) { closestDist = dist; closest = c; closestIndex = i; }
+  });
+  cards.forEach(c => c.classList.toggle("active", c === closest));
+  const dots = document.querySelectorAll("#learn-dots .dot");
+  dots.forEach((d, i) => d.classList.toggle("active", i === closestIndex));
+}
+
+function debounce(fn, ms) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
 }
 
 function openPreviewOverlay(name) {
