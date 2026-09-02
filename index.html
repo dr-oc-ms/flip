@@ -411,7 +411,7 @@ let SET_NAMES = [];
 let previewSet = null;   // im Startbildschirm angeschautes Set
 let activeSet = null;    // im Lernmodus aktives Set
 let pool = [];           // verbleibende Vokabeln der aktuellen Runde
-let direction = localStorage.getItem("flip-direction") || "en-de";
+let direction = "de-en";
 let theme = localStorage.getItem("flip-theme") || "dark";
 let flipped = false;
 
@@ -678,7 +678,6 @@ document.getElementById("btn-learned").addEventListener("click", () => resolveCu
    ========================================================= */
 function toggleDirection() {
   direction = direction === "en-de" ? "de-en" : "en-de";
-  localStorage.setItem("flip-direction", direction);
   if (document.getElementById("learn-screen").classList.contains("active")) renderCard();
 }
 function toggleTheme() {
