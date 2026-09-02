@@ -620,9 +620,13 @@ function renderCard() {
   const actionRow = document.getElementById("action-row");
   inner.innerHTML = "";
   if (!pool.length) {
-    inner.innerHTML = `<div class="empty-state">Super gemacht! Alle Vokabeln aus <strong>${activeSet}</strong> wurden mindestens einmal richtig beantwortet.</div>`;
+    inner.innerHTML = `
+      <div class="empty-state">
+        <p style="margin:0 0 20px;">Super gemacht! Alle Vokabeln aus <strong>${activeSet}</strong> wurden mindestens einmal richtig beantwortet.</p>
+        <button id="btn-to-start" style="background:var(--btn-bg); color:var(--btn-text); border:none; border-radius:14px; padding:12px 24px; font-size:15px; font-weight:600; font-family:inherit; cursor:pointer;">Zur Set-Auswahl</button>
+      </div>`;
     if (actionRow) actionRow.style.visibility = "hidden";
-    setTimeout(goToHomeScreen, 1400);
+    document.getElementById("btn-to-start").addEventListener("click", goToHomeScreen);
     return;
   }
   if (actionRow) actionRow.style.visibility = "visible";
