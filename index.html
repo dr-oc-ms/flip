@@ -294,7 +294,12 @@
   <!-- LEARN SCREEN -->
   <div class="screen" id="learn-screen">
     <div class="topbar">
-      <p class="logo">Flip</p>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <button id="btn-back-home" aria-label="Zurück zur Übersicht" style="width:36px; height:36px; border-radius:50%; border:none; background:var(--pill-bg); display:flex; align-items:center; justify-content:center; cursor:pointer;">
+          <svg viewBox="0 0 24 24" style="width:18px; height:18px; stroke:var(--pill-icon); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <p class="logo">Flip</p>
+      </div>
       <div class="pill">
         <button id="learn-dir-toggle" aria-label="Richtung umschalten">
           <svg viewBox="0 0 24 24"><path d="M7 7h11M18 7l-4-4M18 7l-4 4M17 17H6M6 17l4 4M6 17l4-4"/></svg>
@@ -470,6 +475,14 @@ function renderHome() {
   list.innerHTML = SETS[previewSet].map(w => `<div class="preview-row"><p class="en">${escapeHtml(w.en)}</p><p class="de">${escapeHtml(w.de)}</p></div>`).join("");
 }
 
+function goToHomeScreen() {
+  previewSet = activeSet || SET_NAMES[0];
+  document.getElementById("learn-screen").classList.remove("active");
+  document.getElementById("home-screen").classList.add("active");
+  renderHome();
+}
+document.getElementById("btn-back-home").addEventListener("click", goToHomeScreen);
+
 document.getElementById("learn-btn").addEventListener("click", () => startSession(previewSet));
 
 /* =========================================================
@@ -607,8 +620,9 @@ function renderCard() {
   const actionRow = document.getElementById("action-row");
   inner.innerHTML = "";
   if (!pool.length) {
-    inner.innerHTML = `<div class="empty-state">Fertig! Alle Vokabeln aus <strong>${activeSet}</strong> wurden mindestens einmal richtig beantwortet. Wenn du dir sicher bist, kannst du den Status im Google Sheet auf "Set safe" setzen.</div>`;
+    inner.innerHTML = `<div class="empty-state">Super gemacht! Alle Vokabeln aus <strong>${activeSet}</strong> wurden mindestens einmal richtig beantwortet.</div>`;
     if (actionRow) actionRow.style.visibility = "hidden";
+    setTimeout(goToHomeScreen, 1400);
     return;
   }
   if (actionRow) actionRow.style.visibility = "visible";
