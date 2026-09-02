@@ -246,7 +246,6 @@
       <div class="fade-bottom"></div>
     </div>
     <button class="learn-btn" id="learn-btn">Set lernen</button>
-    <p id="debug-line" style="text-align:left; font-size:11px; color:var(--text-secondary); margin-top:14px; opacity:0.8; padding:0 20px; word-break:break-word;"></p>
   </div>
 
   <!-- LEARN SCREEN -->
@@ -394,21 +393,6 @@ async function init() {
     } catch (e) { console.warn("Konnte CSV nicht laden, nutze Beispieldaten.", e); }
   }
   SETS = buildSets(csvText);
-  window.__flipRawSample = csvText.slice(0, 260);
-  const dbg = document.getElementById("debug-line");
-  if (dbg && window.__flipDebug) {
-    const d = window.__flipDebug;
-    let txt = `[${APP_VERSION}] ${d.matched} Vokabeln in ${d.sets} Stapeln geladen (${d.errors} Parse-Fehler)`;
-    if (d.errorDetails && d.errorDetails.length) {
-      txt += "\n" + d.errorDetails.map(e => `Zeile ${e.row}: ${e.code} - ${e.message}`).join("\n");
-    }
-    if (d.badRows && d.badRows.length) {
-      txt += "\n\nInhalt einer betroffenen Zeile:\n" + JSON.stringify(d.badRows[0]);
-    }
-    txt += "\n\nRohtext (erste 260 Zeichen):\n" + JSON.stringify(window.__flipRawSample);
-    dbg.style.whiteSpace = "pre-line";
-    dbg.textContent = txt;
-  }
   SET_NAMES = Object.keys(SETS).sort(naturalSort);
   if (!SET_NAMES.length) return;
   previewSet = SET_NAMES[0];
