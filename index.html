@@ -650,13 +650,12 @@ function sampleRandom(arr, n) {
   return shuffled.slice(0, Math.min(n, shuffled.length));
 }
 
-function applyRandomCorner(el, depthPx, heightPct) {
-  const width = heightPct === 92 ? 76 : 81;
+function applyRandomCorner(el, depthPx, heightPct, widthPct) {
   const hSign = Math.random() < 0.5 ? 1 : -1;
   const vSign = Math.random() < 0.5 ? 1 : -1; // 1 = schaut unten raus, -1 = schaut oben raus
   const topVal = vSign === 1 ? (100 - heightPct) : -(100 - heightPct);
-  const rotate = hSign * vSign * (2 + Math.random() * 3);
-  el.style.width = width + "%";
+  const rotate = hSign * vSign * (1.5 + Math.random() * 2);
+  el.style.width = widthPct + "%";
   el.style.height = heightPct + "%";
   el.style.top = topVal + "%";
   el.style.transform = `translateX(calc(-50% + ${hSign * depthPx}px)) rotate(${rotate.toFixed(1)}deg)`;
@@ -688,10 +687,10 @@ function renderCard() {
   // Hintergrundkarten (Stapel-Optik)
   const bg1 = document.createElement("div");
   bg1.className = "bg-card"; bg1.style.background = "var(--card-1)";
-  applyRandomCorner(bg1, 26, 92);
+  applyRandomCorner(bg1, 14, 95, 80);
   const bg2 = document.createElement("div");
   bg2.className = "bg-card"; bg2.style.background = "var(--card-2)";
-  applyRandomCorner(bg2, 13, 96);
+  applyRandomCorner(bg2, 7, 97.5, 83);
   inner.appendChild(bg1); inner.appendChild(bg2);
 
   const card = document.createElement("div");
