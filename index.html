@@ -11,6 +11,7 @@
 <style>
   :root {
     --bg: #000000;
+    --card-0: #151517;
     --card-1: #1C1C1E;
     --card-2: #232325;
     --card-3: #2C2C2E;
@@ -26,25 +27,28 @@
     --dot-inactive: #48484A;
     --safe-accent: #FFC22E;
     --inactive-filter: brightness(0.4) saturate(0.9);
+    --inactive-opacity: 1;
     --card-edge: rgba(255,255,255,0.08);
   }
   [data-theme="light"] {
     --bg: #F2F2F7;
+    --card-0: #FFFFFF;
     --card-1: #FFFFFF;
     --card-2: #FFFFFF;
     --card-3: #FFFFFF;
     --text-primary: #1C1C1E;
     --text-secondary: #8E8E93;
-    --pill-bg: #1C1C1E;
-    --pill-icon: #FFFFFF;
+    --pill-bg: #FFFFFF;
+    --pill-icon: #1C1C1E;
     --sheet-bg: #FFFFFF;
     --sheet-row-border: #EDEDF2;
-    --btn-bg: #1C1C1E;
-    --btn-text: #FFFFFF;
+    --btn-bg: #FFFFFF;
+    --btn-text: #1C1C1E;
     --dot-active: #1C1C1E;
     --dot-inactive: #C7C7CC;
     --safe-accent: #D98E00;
-    --inactive-filter: grayscale(0.9) brightness(1.15);
+    --inactive-filter: none;
+    --inactive-opacity: 0.4;
     --card-edge: rgba(0,0,0,0.10);
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -116,7 +120,7 @@
     box-shadow: 0 6px 14px rgba(0,0,0,0.28);
   }
   .set-card.selected { opacity: 1; filter: none; box-shadow: 0 6px 16px rgba(0,0,0,0.3); }
-  .set-card:not(.selected) { filter: var(--inactive-filter); }
+  .set-card:not(.selected) { filter: var(--inactive-filter); opacity: var(--inactive-opacity); }
   .set-card.is-safe { box-shadow: 0 6px 14px rgba(0,0,0,0.28), 0 0 0 2px var(--safe-accent); }
   .set-card p { margin: 0; color: #FFFFFF; }
   .set-card .name { font-size: 19px; font-weight: 600; letter-spacing: -0.2px; }
@@ -158,6 +162,7 @@
     border: none; border-radius: 14px;
     padding: 14px 0; font-size: 16px; font-weight: 600;
     font-family: inherit; cursor: pointer;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.18);
   }
 
   /* ---- Learn screen: Invites-style carousel ---- */
@@ -186,8 +191,8 @@
     box-shadow: 0 12px 26px rgba(0,0,0,0.28);
   }
   .carousel-card.is-safe { box-shadow: 0 12px 26px rgba(0,0,0,0.28), 0 0 0 2px var(--safe-accent); }
-  .carousel-card { filter: var(--inactive-filter); transition: filter 0.2s ease; }
-  .carousel-card.active { filter: none; }
+  .carousel-card { filter: var(--inactive-filter); opacity: var(--inactive-opacity); transition: filter 0.2s ease, opacity 0.2s ease; }
+  .carousel-card.active { filter: none; opacity: 1; }
   .carousel-card p { margin: 0; color: #FFFFFF; }
   .carousel-card .name { font-size: 19px; font-weight: 600; letter-spacing: -0.2px; }
   .carousel-card .count { font-size: 12px; color: rgba(255,255,255,0.75); margin-top: 3px; }
@@ -232,7 +237,7 @@
   .action-row {
     display: flex; align-items: center; justify-content: space-between;
     width: 100%; max-width: 296px; margin: 0 auto; box-sizing: border-box;
-    padding: 4px 4px max(16px, env(safe-area-inset-bottom));
+    padding: 26px 4px max(16px, env(safe-area-inset-bottom));
   }
   .action-btn {
     display: flex; align-items: center; justify-content: center;
@@ -264,7 +269,7 @@
   @media (min-width: 700px) {
     #app { max-width: 860px; margin: 0 auto; }
     .stack-inner { max-width: 425px; height: min(62vh, 480px); }
-    .action-row { gap: 0; max-width: 365px; }
+    .action-row { gap: 0; max-width: 365px; padding-top: 4px; }
     .action-btn { width: 72px; height: 72px; }
     .action-btn svg { width: 30px; height: 30px; }
   }
@@ -625,6 +630,9 @@ const SAFE_SAMPLE_SIZE = 15;
 
 let sessionTotal = 0;
 let sessionFinished = false;
+let bg1Style = null;
+let bg2Style = null;
+let bg3Style = null;
 
 function startSession(name) {
   activeSet = name;
@@ -633,6 +641,12 @@ function startSession(name) {
   sessionTotal = pool.length;
   sessionFinished = false;
   setCarouselLocked(false);
+  const isDesktopView = window.matchMedia("(min-width: 700px)").matches;
+  const m = isDesktopView ? 1 : 2; // Versatz auf dem Handy verdoppeln
+  const corners = pickDistinctCorners(3);
+  bg1Style = randomCornerStyle(corners[0][0], corners[0][1], 9 * m, 100 - (100 - 97) * m, 80);
+  bg2Style = randomCornerStyle(corners[1][0], corners[1][1], 6 * m, 100 - (100 - 98) * m, 83);
+  bg3Style = randomCornerStyle(corners[2][0], corners[2][1], 12 * m, 100 - (100 - 95.5) * m, 77);
   document.getElementById("home-screen").classList.remove("active");
   document.getElementById("learn-screen").classList.add("active");
   renderLearnCarousel();
@@ -650,15 +664,26 @@ function sampleRandom(arr, n) {
   return shuffled.slice(0, Math.min(n, shuffled.length));
 }
 
-function applyRandomCorner(el, depthPx, heightPct, widthPct) {
-  const hSign = Math.random() < 0.5 ? 1 : -1;
-  const vSign = Math.random() < 0.5 ? 1 : -1; // 1 = schaut unten raus, -1 = schaut oben raus
+function randomCornerStyle(hSign, vSign, depthPx, heightPct, widthPct) {
   const topVal = vSign === 1 ? (100 - heightPct) : -(100 - heightPct);
-  const rotate = hSign * vSign * (1.5 + Math.random() * 2);
-  el.style.width = widthPct + "%";
-  el.style.height = heightPct + "%";
-  el.style.top = topVal + "%";
-  el.style.transform = `translateX(calc(-50% + ${hSign * depthPx}px)) rotate(${rotate.toFixed(1)}deg)`;
+  const rotate = hSign * vSign * (1 + Math.random() * 1.5);
+  return {
+    width: widthPct + "%",
+    height: heightPct + "%",
+    top: topVal + "%",
+    transform: `translateX(calc(-50% + ${hSign * depthPx}px)) rotate(${rotate.toFixed(1)}deg)`
+  };
+}
+function pickDistinctCorners(n) {
+  const corners = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
+  shuffle(corners);
+  return corners.slice(0, n);
+}
+function applyCornerStyle(el, style) {
+  el.style.width = style.width;
+  el.style.height = style.height;
+  el.style.top = style.top;
+  el.style.transform = style.transform;
 }
 
 function renderCard() {
@@ -674,7 +699,7 @@ function renderCard() {
     inner.innerHTML = `
       <div class="empty-state">
         <p style="margin:0 0 20px;">Super gemacht! Alle Vokabeln aus <strong>${activeSet}</strong> wurden mindestens einmal richtig beantwortet.${safeHint}</p>
-        <button id="btn-to-start" style="background:var(--btn-bg); color:var(--btn-text); border:none; border-radius:14px; padding:12px 24px; font-size:15px; font-weight:600; font-family:inherit; cursor:pointer;">Zur Set-Auswahl</button>
+        <button id="btn-to-start" style="background:var(--btn-bg); color:var(--btn-text); border:none; border-radius:14px; padding:12px 24px; font-size:15px; font-weight:600; font-family:inherit; cursor:pointer; box-shadow:0 6px 14px rgba(0,0,0,0.18);">Zur Set-Auswahl</button>
       </div>`;
     if (actionRow) actionRow.style.visibility = "hidden";
     document.getElementById("btn-to-start").addEventListener("click", goToHomeScreen);
@@ -685,13 +710,16 @@ function renderCard() {
   if (counterEl) counterEl.textContent = `${pool.length} von ${sessionTotal}`;
 
   // Hintergrundkarten (Stapel-Optik)
+  const bg3 = document.createElement("div");
+  bg3.className = "bg-card"; bg3.style.background = "var(--card-0)";
+  applyCornerStyle(bg3, bg3Style);
   const bg1 = document.createElement("div");
   bg1.className = "bg-card"; bg1.style.background = "var(--card-1)";
-  applyRandomCorner(bg1, 14, 95, 80);
+  applyCornerStyle(bg1, bg1Style);
   const bg2 = document.createElement("div");
   bg2.className = "bg-card"; bg2.style.background = "var(--card-2)";
-  applyRandomCorner(bg2, 7, 97.5, 83);
-  inner.appendChild(bg1); inner.appendChild(bg2);
+  applyCornerStyle(bg2, bg2Style);
+  inner.appendChild(bg3); inner.appendChild(bg1); inner.appendChild(bg2);
 
   const card = document.createElement("div");
   card.className = "flash-card";
