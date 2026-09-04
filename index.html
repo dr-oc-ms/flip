@@ -660,11 +660,12 @@ function startSession(name) {
   sessionFinished = false;
   setCarouselLocked(false);
   const isDesktopView = window.matchMedia("(min-width: 700px)").matches;
-  const m = isDesktopView ? 1 : 2; // Versatz auf dem Handy verdoppeln
+  const depthMult = isDesktopView ? 1 : 1.8;  // seitlicher Versatz
+  const vMult = isDesktopView ? 1 : 1.15;     // vertikaler Versatz, bewusst nur leicht erhöht
   const corners = pickDistinctCorners(3);
-  bg1Style = randomCornerStyle(corners[0][0], corners[0][1], 9 * m, 100 - (100 - 97) * m, 80);
-  bg2Style = randomCornerStyle(corners[1][0], corners[1][1], 6 * m, 100 - (100 - 98) * m, 83);
-  bg3Style = randomCornerStyle(corners[2][0], corners[2][1], 12 * m, 100 - (100 - 95.5) * m, 77);
+  bg1Style = randomCornerStyle(corners[0][0], corners[0][1], 9 * depthMult, 100 - (100 - 97) * vMult, 80);
+  bg2Style = randomCornerStyle(corners[1][0], corners[1][1], 6 * depthMult, 100 - (100 - 98) * vMult, 83);
+  bg3Style = randomCornerStyle(corners[2][0], corners[2][1], 12 * depthMult, 100 - (100 - 95.5) * vMult, 77);
   document.getElementById("home-screen").classList.remove("active");
   document.getElementById("learn-screen").classList.add("active");
   renderLearnCarousel();
