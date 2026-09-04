@@ -143,6 +143,7 @@
   .preview-row { padding: 10px 16px; border-top: 0.5px solid var(--sheet-row-border); }
   .preview-row .en { margin: 0; font-size: 15px; font-weight: 500; color: var(--text-primary); }
   .preview-row .de { margin: 2px 0 0; font-size: 13px; color: var(--text-secondary); }
+  .preview-row .sentence { margin: 4px 0 0; font-size: 12px; font-style: italic; color: var(--text-secondary); opacity: 0.75; line-height: 1.4; }
   .fade-bottom {
     position: absolute; bottom: 0; left: 0; right: 0; height: 32px;
     background: linear-gradient(to bottom, transparent, var(--sheet-bg));
@@ -472,7 +473,7 @@ function renderHome() {
   });
   document.getElementById("preview-header").textContent = `${previewSet} \u00b7 ${SETS[previewSet].length} Vokabeln`;
   const list = document.getElementById("preview-list");
-  list.innerHTML = SETS[previewSet].map(w => `<div class="preview-row"><p class="en">${escapeHtml(w.en)}</p><p class="de">${escapeHtml(w.de)}</p></div>`).join("");
+  list.innerHTML = SETS[previewSet].map(vocabRowHtml).join("");
 }
 
 function goToHomeScreen() {
@@ -581,7 +582,7 @@ function openPreviewOverlay(name) {
   const stackInner = document.getElementById("stack-inner");
   if (stackInner) stackInner.innerHTML = "";
   document.getElementById("overlay-header").textContent = `${name} \u00b7 ${SETS[name].length} Vokabeln`;
-  document.getElementById("overlay-list").innerHTML = SETS[name].map(w => `<div class="preview-row"><p class="en">${escapeHtml(w.en)}</p><p class="de">${escapeHtml(w.de)}</p></div>`).join("");
+  document.getElementById("overlay-list").innerHTML = SETS[name].map(vocabRowHtml).join("");
   const btn = document.getElementById("overlay-learn-btn");
   btn.textContent = name === activeSet ? "Wird gerade gelernt" : "Set lernen";
   btn.onclick = () => {
@@ -720,6 +721,14 @@ document.getElementById("learn-theme-toggle").addEventListener("click", toggleTh
 
 function escapeHtml(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function vocabRowHtml(w) {
+  return `<div class="preview-row">
+    <p class="en">${escapeHtml(w.en)}</p>
+    <p class="de">${escapeHtml(w.de)}</p>
+    ${w.sentence ? `<p class="sentence">${escapeHtml(w.sentence)}</p>` : ""}
+  </div>`;
 }
 
 init();
