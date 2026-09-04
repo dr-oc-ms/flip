@@ -660,12 +660,11 @@ function startSession(name) {
   sessionFinished = false;
   setCarouselLocked(false);
   const isDesktopView = window.matchMedia("(min-width: 700px)").matches;
-  const depthMult = isDesktopView ? 1 : 1.8;  // seitlicher Versatz
-  const vMult = isDesktopView ? 1 : 1.15;     // vertikaler Versatz, bewusst nur leicht erhöht
+  const depthMult = isDesktopView ? 1 : 1.8;
   const corners = pickDistinctCorners(3);
-  bg1Style = randomCornerStyle(corners[0][0], corners[0][1], 9 * depthMult, 100 - (100 - 97) * vMult, 80);
-  bg2Style = randomCornerStyle(corners[1][0], corners[1][1], 6 * depthMult, 100 - (100 - 98) * vMult, 83);
-  bg3Style = randomCornerStyle(corners[2][0], corners[2][1], 12 * depthMult, 100 - (100 - 95.5) * vMult, 77);
+  bg1Style = randomCornerStyle(corners[0][0], corners[0][1], 9 * depthMult, 80);
+  bg2Style = randomCornerStyle(corners[1][0], corners[1][1], 6 * depthMult, 83);
+  bg3Style = randomCornerStyle(corners[2][0], corners[2][1], 12 * depthMult, 77);
   document.getElementById("home-screen").classList.remove("active");
   document.getElementById("learn-screen").classList.add("active");
   renderLearnCarousel();
@@ -683,13 +682,12 @@ function sampleRandom(arr, n) {
   return shuffled.slice(0, Math.min(n, shuffled.length));
 }
 
-function randomCornerStyle(hSign, vSign, depthPx, heightPct, widthPct) {
-  const topVal = vSign === 1 ? (100 - heightPct) : -(100 - heightPct);
+function randomCornerStyle(hSign, vSign, depthPx, widthPct) {
   const rotate = hSign * vSign * (1 + Math.random() * 1.5);
   return {
     width: widthPct + "%",
-    height: heightPct + "%",
-    top: topVal + "%",
+    height: "100%",
+    top: "0%",
     transform: `translateX(calc(-50% + ${hSign * depthPx}px)) rotate(${rotate.toFixed(1)}deg)`
   };
 }
