@@ -397,6 +397,12 @@
 
 </div>
 
+<!-- Persistente Audio-Elemente fuer iOS: dieselbe Element-Instanz wird fuer
+     alle Tracks wiederverwendet (nur src getauscht), statt bei jedem Titel
+     ein neues Audio()-Objekt zu erzeugen - siehe Kommentar bei playNextInQueue() -->
+<audio id="listen-audio-el" playsinline preload="auto" style="display:none"></audio>
+<audio id="card-audio-el" playsinline preload="auto" style="display:none"></audio>
+
 <!-- Preview overlay used from the learn-mode carousel -->
 <div class="overlay" id="overlay">
   <div class="sheet">
@@ -423,20 +429,17 @@ const CSV_URL = "https://raw.githubusercontent.com/dr-oc-ms/flip/main/data.csv";
 const AUDIO_BASE_URL = "https://raw.githubusercontent.com/dr-oc-ms/flip/main/audio/";
 const CARD_AUDIO_ICON_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 5V4L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg>`;
 
-let cardAudio = null;
+const cardAudio = document.getElementById("card-audio-el");
 function playWordAudio(word) {
   if (!word.audio) return;
   stopListening();
-  if (cardAudio) { cardAudio.pause(); cardAudio.removeAttribute("src"); }
-  cardAudio = new Audio(AUDIO_BASE_URL + encodeURIComponent(word.audio));
+  cardAudio.src = AUDIO_BASE_URL + encodeURIComponent(word.audio);
   cardAudio.play().catch(() => {});
 }
 function stopCardAudio() {
-  if (cardAudio) {
-    cardAudio.pause();
-    cardAudio.removeAttribute("src");
-    cardAudio = null;
-  }
+  cardAudio.pause();
+  cardAudio.removeAttribute("src");
+  cardAudio.load();
 }
 
 const SAMPLE_CSV = `English,German,In a Sentence,Flip
@@ -593,16 +596,25 @@ document.getElementById("learn-btn").addEventListener("click", () => { stopListe
 /* =========================================================
    "SET ANHÖREN" - sequentielle Audio-Wiedergabe
    ========================================================= */
-let listenAudio = null;
+/* WICHTIG (iOS-Fix): iOS erlaubt play() ohne frisches Nutzer-Tap nur auf einem
+   Audio-Element, das schon einmal per echtem Tap "freigeschaltet" wurde - bei
+   jedem Titel ein neues Audio()-Objekt zu erzeugen (wie in der ersten Version)
+   ist genau das, was auf iOS beim Sperrbildschirm nach dem ersten Titel
+   abbricht (bestaetigt u.a. in einem WebKit-Bugreport zu genau diesem
+   Verhalten). Fix: dieselbe <audio>-Instanz fuer die ganze Serie wiederverwenden,
+   nur src austauschen. */
+const listenAudio = document.getElementById("listen-audio-el");
 let listenQueue = [];
 let listenIndex = 0;
 let isListening = false;
+
+listenAudio.addEventListener("ended", () => { if (!isListening) return; listenIndex++; playNextInQueue(); });
+listenAudio.addEventListener("error", () => { if (!isListening) return; listenIndex++; playNextInQueue(); });
 
 function startListening(name) {
   const words = SETS[name].filter(w => w.audio);
   if (!words.length) return;
   stopCardAudio();
-  stopListening();
   listenQueue = words;
   listenIndex = 0;
   isListening = true;
@@ -616,18 +628,14 @@ function playNextInQueue() {
     return;
   }
   const w = listenQueue[listenIndex];
-  listenAudio = new Audio(AUDIO_BASE_URL + encodeURIComponent(w.audio));
-  listenAudio.addEventListener("ended", () => { listenIndex++; playNextInQueue(); });
-  listenAudio.addEventListener("error", () => { listenIndex++; playNextInQueue(); });
+  listenAudio.src = AUDIO_BASE_URL + encodeURIComponent(w.audio);
   listenAudio.play().then(() => updateMediaSession(w)).catch(() => stopListening());
 }
 
 function stopListening() {
-  if (listenAudio) {
-    listenAudio.pause();
-    listenAudio.removeAttribute("src");
-    listenAudio = null;
-  }
+  listenAudio.pause();
+  listenAudio.removeAttribute("src");
+  listenAudio.load();
   isListening = false;
   listenQueue = [];
   listenIndex = 0;
@@ -656,8 +664,8 @@ function clearMediaSession() {
   navigator.mediaSession.playbackState = "none";
 }
 if ("mediaSession" in navigator) {
-  navigator.mediaSession.setActionHandler("play", () => { if (listenAudio) { listenAudio.play(); navigator.mediaSession.playbackState = "playing"; } });
-  navigator.mediaSession.setActionHandler("pause", () => { if (listenAudio) { listenAudio.pause(); navigator.mediaSession.playbackState = "paused"; } });
+  navigator.mediaSession.setActionHandler("play", () => { listenAudio.play(); navigator.mediaSession.playbackState = "playing"; });
+  navigator.mediaSession.setActionHandler("pause", () => { listenAudio.pause(); navigator.mediaSession.playbackState = "paused"; });
   navigator.mediaSession.setActionHandler("stop", () => stopListening());
   navigator.mediaSession.setActionHandler("nexttrack", () => { if (isListening) { listenIndex++; playNextInQueue(); } });
   navigator.mediaSession.setActionHandler("previoustrack", () => { if (isListening) { listenIndex = Math.max(0, listenIndex - 1); playNextInQueue(); } });
