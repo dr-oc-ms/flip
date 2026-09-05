@@ -619,7 +619,7 @@ function playNextInQueue() {
   listenAudio = new Audio(AUDIO_BASE_URL + encodeURIComponent(w.audio));
   listenAudio.addEventListener("ended", () => { listenIndex++; playNextInQueue(); });
   listenAudio.addEventListener("error", () => { listenIndex++; playNextInQueue(); });
-  listenAudio.play().catch(() => stopListening());
+  listenAudio.play().then(() => updateMediaSession(w)).catch(() => stopListening());
 }
 
 function stopListening() {
@@ -632,6 +632,35 @@ function stopListening() {
   listenQueue = [];
   listenIndex = 0;
   updateListenButton();
+  clearMediaSession();
+}
+
+/* Media Session API: meldet dem Betriebssystem eine aktive Medienwiedergabe
+   (Titel/Interpret + Sperrbildschirm-Steuerung). Wichtig fürs iPhone: ohne
+   das behandelt iOS die Seite beim Sperren des Bildschirms wie eine normale
+   Hintergrund-Seite und drosselt die JS-Ausführung, wodurch der "ended"-
+   Callback, der das nächste Wort anstößt, nicht mehr zuverlässig feuert -
+   die laufende Datei spielt zwar noch zu Ende, aber die Serie bricht danach ab. */
+function updateMediaSession(w) {
+  if (!("mediaSession" in navigator)) return;
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title: w.en,
+    artist: w.de,
+    album: "Flip"
+  });
+  navigator.mediaSession.playbackState = "playing";
+}
+function clearMediaSession() {
+  if (!("mediaSession" in navigator)) return;
+  navigator.mediaSession.metadata = null;
+  navigator.mediaSession.playbackState = "none";
+}
+if ("mediaSession" in navigator) {
+  navigator.mediaSession.setActionHandler("play", () => { if (listenAudio) { listenAudio.play(); navigator.mediaSession.playbackState = "playing"; } });
+  navigator.mediaSession.setActionHandler("pause", () => { if (listenAudio) { listenAudio.pause(); navigator.mediaSession.playbackState = "paused"; } });
+  navigator.mediaSession.setActionHandler("stop", () => stopListening());
+  navigator.mediaSession.setActionHandler("nexttrack", () => { if (isListening) { listenIndex++; playNextInQueue(); } });
+  navigator.mediaSession.setActionHandler("previoustrack", () => { if (isListening) { listenIndex = Math.max(0, listenIndex - 1); playNextInQueue(); } });
 }
 
 function updateListenButton() {
