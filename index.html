@@ -79,11 +79,13 @@
     min-height: 100dvh;
     height: 100dvh;
     overflow-y: auto;
+    scrollbar-width: none; -ms-overflow-style: none;
     padding-top: max(20px, env(safe-area-inset-top));
     padding-bottom: max(20px, env(safe-area-inset-bottom));
     display: flex;
     flex-direction: column;
   }
+  #app::-webkit-scrollbar { display: none; }
   .screen { display: none; flex-direction: column; flex: 1; }
   .screen.active { display: flex; }
 
@@ -511,7 +513,7 @@ function renderHome() {
     el.addEventListener("click", () => { previewSet = name; renderHome(); });
     row.appendChild(el);
   });
-  document.getElementById("preview-header").textContent = `${previewSet} \u00b7 ${SETS[previewSet].length} Vokabeln`;
+  document.getElementById("preview-header").textContent = `${previewSet} · ${SETS[previewSet].length} Vokabeln`;
   const list = document.getElementById("preview-list");
   list.innerHTML = SETS[previewSet].map(vocabRowHtml).join("");
 }
@@ -637,7 +639,7 @@ function openPreviewOverlay(name) {
   if (sessionFinished) return;
   const stackInner = document.getElementById("stack-inner");
   if (stackInner) stackInner.innerHTML = "";
-  document.getElementById("overlay-header").textContent = `${name} \u00b7 ${SETS[name].length} Vokabeln`;
+  document.getElementById("overlay-header").textContent = `${name} · ${SETS[name].length} Vokabeln`;
   document.getElementById("overlay-list").innerHTML = SETS[name].map(vocabRowHtml).join("");
   const btn = document.getElementById("overlay-learn-btn");
   btn.textContent = name === activeSet ? "Wird gerade gelernt" : "Set lernen";
