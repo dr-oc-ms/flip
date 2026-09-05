@@ -185,6 +185,19 @@
     font-family: inherit; cursor: pointer;
     box-shadow: 0 6px 14px rgba(0,0,0,0.18);
   }
+  .learn-actions { display: flex; gap: 10px; margin: 22px 20px 0; }
+  .learn-actions .learn-btn { margin: 0; width: auto; flex: 1; box-shadow: 0 6px 14px rgba(0,0,0,0.18); }
+  .listen-btn {
+    display: block; flex: 1;
+    background: var(--pill-bg); color: var(--text-primary);
+    border: none; border-radius: 14px;
+    padding: 14px 0; font-size: 16px; font-weight: 600;
+    font-family: inherit; cursor: pointer;
+  }
+  .listen-btn:disabled { cursor: default; }
+  .listen-btn.playing { color: var(--safe-accent); }
+  .preview-row .en { display: inline-flex; align-items: center; gap: 6px; }
+  .audio-indicator { width: 13px; height: 13px; flex: none; fill: var(--text-secondary); opacity: 0.7; }
 
   /* ---- Learn screen: Invites-style carousel ---- */
   .carousel-wrap { overflow: hidden; padding: 8px 0 6px; position: relative; }
@@ -260,6 +273,16 @@
   }
   .flash-card .face { backface-visibility: hidden; position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px 22px; }
   .flash-card .face.back { transform: rotateY(180deg); }
+  .card-audio-btn {
+    position: absolute; top: 14px; right: 14px;
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    border: none; padding: 0; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  [data-theme="light"] .card-audio-btn { background: rgba(0,0,0,0.06); }
+  .card-audio-btn svg { width: 16px; height: 16px; fill: var(--text-secondary); }
+  .card-audio-btn:active { transform: scale(0.92); }
   .flash-card .word { font-size: 22px; font-weight: 600; margin: 0 0 10px; letter-spacing: -0.4px; }
   .flash-card .sub { font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin: 0; }
   .empty-state { text-align: center; color: var(--text-secondary); font-size: 15px; padding: 0 30px; line-height: 1.6; }
@@ -327,7 +350,10 @@
       <div class="preview-list" id="preview-list"></div>
       <div class="fade-bottom"></div>
     </div>
-    <button class="learn-btn" id="learn-btn">Set lernen</button>
+    <div class="learn-actions">
+      <button class="learn-btn" id="learn-btn">Set lernen</button>
+      <button class="listen-btn" id="listen-btn">Set anhören</button>
+    </div>
   </div>
 
   <!-- LEARN SCREEN -->
@@ -394,6 +420,24 @@
    ========================================================= */
 const APP_VERSION = "v8-fastmode-off";
 const CSV_URL = "https://raw.githubusercontent.com/dr-oc-ms/flip/main/data.csv";
+const AUDIO_BASE_URL = "https://raw.githubusercontent.com/dr-oc-ms/flip/main/audio/";
+const CARD_AUDIO_ICON_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 5V4L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg>`;
+
+let cardAudio = null;
+function playWordAudio(word) {
+  if (!word.audio) return;
+  stopListening();
+  if (cardAudio) { cardAudio.pause(); cardAudio.removeAttribute("src"); }
+  cardAudio = new Audio(AUDIO_BASE_URL + encodeURIComponent(word.audio));
+  cardAudio.play().catch(() => {});
+}
+function stopCardAudio() {
+  if (cardAudio) {
+    cardAudio.pause();
+    cardAudio.removeAttribute("src");
+    cardAudio = null;
+  }
+}
 
 const SAMPLE_CSV = `English,German,In a Sentence,Flip
 adamant,"unnachgiebig, unerschütterlich, fest entschlossen",Despite mounting pressure from shareholders, the CEO remained adamant that the merger would not go ahead.,Stapel 005
@@ -443,7 +487,8 @@ function buildSets(csvText) {
     sets[setName].push({
       en: (r["English"] || "").trim(),
       de: (r["German"] || "").trim(),
-      sentence: (r["In a Sentence"] || "").trim()
+      sentence: (r["In a Sentence"] || "").trim(),
+      audio: (r["Audio File"] || "").trim()
     });
     total++;
   });
@@ -511,7 +556,11 @@ function renderHome() {
     el.className = "set-card" + (name === previewSet ? " selected" : "") + (isSafe(name) ? " is-safe" : "");
     el.style.background = gradientFor(name);
     el.innerHTML = `<p class="name">${name}</p><p class="count">${SETS[name].length} Vokabeln</p>`;
-    el.addEventListener("click", () => { previewSet = name; renderHome(); });
+    el.addEventListener("click", () => {
+      if (name !== previewSet) stopListening();
+      previewSet = name;
+      renderHome();
+    });
     row.appendChild(el);
     if (name === previewSet) selectedEl = el;
   });
@@ -521,9 +570,17 @@ function renderHome() {
   document.getElementById("preview-header").textContent = `${previewSet} · ${SETS[previewSet].length} Vokabeln`;
   const list = document.getElementById("preview-list");
   list.innerHTML = SETS[previewSet].map(vocabRowHtml).join("");
+
+  const listenBtn = document.getElementById("listen-btn");
+  if (listenBtn) {
+    const hasAudio = SETS[previewSet].some(w => w.audio);
+    listenBtn.disabled = !hasAudio;
+    listenBtn.style.opacity = hasAudio ? "1" : "0.4";
+  }
 }
 
 function goToHomeScreen() {
+  stopCardAudio();
   previewSet = activeSet || SET_NAMES[0];
   document.getElementById("learn-screen").classList.remove("active");
   document.getElementById("home-screen").classList.add("active");
@@ -531,7 +588,63 @@ function goToHomeScreen() {
 }
 document.getElementById("btn-back-home").addEventListener("click", goToHomeScreen);
 
-document.getElementById("learn-btn").addEventListener("click", () => startSession(previewSet));
+document.getElementById("learn-btn").addEventListener("click", () => { stopListening(); startSession(previewSet); });
+
+/* =========================================================
+   "SET ANHÖREN" - sequentielle Audio-Wiedergabe
+   ========================================================= */
+let listenAudio = null;
+let listenQueue = [];
+let listenIndex = 0;
+let isListening = false;
+
+function startListening(name) {
+  const words = SETS[name].filter(w => w.audio);
+  if (!words.length) return;
+  stopCardAudio();
+  stopListening();
+  listenQueue = words;
+  listenIndex = 0;
+  isListening = true;
+  updateListenButton();
+  playNextInQueue();
+}
+
+function playNextInQueue() {
+  if (!isListening || listenIndex >= listenQueue.length) {
+    stopListening();
+    return;
+  }
+  const w = listenQueue[listenIndex];
+  listenAudio = new Audio(AUDIO_BASE_URL + encodeURIComponent(w.audio));
+  listenAudio.addEventListener("ended", () => { listenIndex++; playNextInQueue(); });
+  listenAudio.addEventListener("error", () => { listenIndex++; playNextInQueue(); });
+  listenAudio.play().catch(() => stopListening());
+}
+
+function stopListening() {
+  if (listenAudio) {
+    listenAudio.pause();
+    listenAudio.removeAttribute("src");
+    listenAudio = null;
+  }
+  isListening = false;
+  listenQueue = [];
+  listenIndex = 0;
+  updateListenButton();
+}
+
+function updateListenButton() {
+  const btn = document.getElementById("listen-btn");
+  if (!btn) return;
+  btn.textContent = isListening ? "Stoppen" : "Set anhören";
+  btn.classList.toggle("playing", isListening);
+}
+
+document.getElementById("listen-btn").addEventListener("click", () => {
+  if (isListening) stopListening();
+  else startListening(previewSet);
+});
 
 /* =========================================================
    LEARN SCREEN - Karussell
@@ -672,6 +785,7 @@ let bg2Style = null;
 let bg3Style = null;
 
 function startSession(name) {
+  stopCardAudio();
   activeSet = name;
   const allWords = SETS[name].slice();
   pool = isSafe(name) ? sampleRandom(allWords, SAFE_SAMPLE_SIZE) : shuffle(allWords);
@@ -767,18 +881,29 @@ function renderCard() {
   const frontSub = direction === "en-de" ? word.sentence : "";
   const backMain = direction === "en-de" ? word.de : word.en;
   const backSub = direction === "en-de" ? "" : word.sentence;
+  const audioBtnHtml = word.audio
+    ? `<button class="card-audio-btn" type="button" aria-label="Aussprache anhören">${CARD_AUDIO_ICON_SVG}</button>`
+    : "";
 
   card.innerHTML = `
     <div class="face front">
+      ${audioBtnHtml}
       <p class="word">${escapeHtml(frontMain)}</p>
       ${frontSub ? `<p class="sub">${escapeHtml(frontSub)}</p>` : ""}
     </div>
     <div class="face back">
+      ${audioBtnHtml}
       <p class="word">${escapeHtml(backMain)}</p>
       ${backSub ? `<p class="sub">${escapeHtml(backSub)}</p>` : ""}
     </div>`;
   card.style.cursor = "pointer";
   card.addEventListener("click", flipCurrentCard);
+  card.querySelectorAll(".card-audio-btn").forEach(btn => {
+    btn.addEventListener("click", e => {
+      e.stopPropagation();
+      playWordAudio(word);
+    });
+  });
   inner.appendChild(card);
 }
 
@@ -792,6 +917,7 @@ function flipCurrentCard() {
 function resolveCurrentCard(outcome) {
   const card = document.getElementById("current-card");
   if (!card || !pool.length) return;
+  stopCardAudio();
   card.style.transition = "transform 0.25s ease, opacity 0.25s ease";
   if (outcome === "learned") {
     card.style.transform = "translateY(-500px)";
@@ -829,9 +955,11 @@ function escapeHtml(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
+const AUDIO_ICON_SVG = `<svg class="audio-indicator" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 5V4L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg>`;
+
 function vocabRowHtml(w) {
   return `<div class="preview-row">
-    <p class="en">${escapeHtml(w.en)}</p>
+    <p class="en">${escapeHtml(w.en)}${w.audio ? AUDIO_ICON_SVG : ""}</p>
     <p class="de">${escapeHtml(w.de)}</p>
     ${w.sentence ? `<p class="sentence">${escapeHtml(w.sentence)}</p>` : ""}
   </div>`;
