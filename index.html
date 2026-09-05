@@ -505,6 +505,7 @@ async function init() {
 function renderHome() {
   const row = document.getElementById("home-set-row");
   row.innerHTML = "";
+  let selectedEl = null;
   SET_NAMES.forEach(name => {
     const el = document.createElement("div");
     el.className = "set-card" + (name === previewSet ? " selected" : "") + (isSafe(name) ? " is-safe" : "");
@@ -512,7 +513,11 @@ function renderHome() {
     el.innerHTML = `<p class="name">${name}</p><p class="count">${SETS[name].length} Vokabeln</p>`;
     el.addEventListener("click", () => { previewSet = name; renderHome(); });
     row.appendChild(el);
+    if (name === previewSet) selectedEl = el;
   });
+  if (selectedEl) {
+    selectedEl.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }
   document.getElementById("preview-header").textContent = `${previewSet} · ${SETS[previewSet].length} Vokabeln`;
   const list = document.getElementById("preview-list");
   list.innerHTML = SETS[previewSet].map(vocabRowHtml).join("");
@@ -724,12 +729,12 @@ function renderCard() {
   if (!pool.length) {
     sessionFinished = true;
     setCarouselLocked(true);
-    const safeHint = isSafe(activeSet)
-      ? ""
-      : ` Wenn du dir sicher bist, kannst du die Vokabeln jetzt im Google Sheet auf "Stapel safe" umstellen.`;
+    const mainMessage = isSafe(activeSet)
+      ? `Super gemacht! Die Vokabeln sitzen noch.`
+      : `Super gemacht! Alle Vokabeln aus <strong>${activeSet}</strong> wurden mindestens einmal richtig beantwortet. Wenn du dir sicher bist, kannst du die Vokabeln jetzt im Google Sheet auf "Stapel safe" umstellen.`;
     inner.innerHTML = `
       <div class="empty-state">
-        <p style="margin:0 0 20px;">Super gemacht! Alle Vokabeln aus <strong>${activeSet}</strong> wurden mindestens einmal richtig beantwortet.${safeHint}</p>
+        <p style="margin:0 0 20px;">${mainMessage}</p>
         <button id="btn-to-start" style="background:var(--btn-bg); color:var(--btn-text); border:none; border-radius:14px; padding:12px 24px; font-size:15px; font-weight:600; font-family:inherit; cursor:pointer; box-shadow:0 6px 14px rgba(0,0,0,0.18);">Zur Set-Auswahl</button>
       </div>`;
     if (actionRow) actionRow.style.visibility = "hidden";
