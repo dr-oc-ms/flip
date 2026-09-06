@@ -80,10 +80,24 @@
     height: 100dvh;
     overflow-y: auto;
     scrollbar-width: none; -ms-overflow-style: none;
-    padding-top: max(20px, env(safe-area-inset-top));
+    /* Etwas mehr Puffer als nur die reine Geraete-Safe-Area: env(safe-area-inset-top)
+       kennt nur die Ruheposition der Notch/Dynamic Island. Wenn iOS zusaetzlich einen
+       Status-Leisten-Indikator einblendet (z.B. das "Wird abgespielt"-Symbol waehrend
+       "Set anhoeren" laeuft, siehe audio-active weiter unten), wird die Leiste kurzzeitig
+       hoeher, ohne dass sich env(safe-area-inset-top) aendert - das hat vorher zum
+       Ueberlappen mit Uhrzeit/Akku gefuehrt. */
+    padding-top: max(24px, calc(env(safe-area-inset-top) + 6px));
     padding-bottom: max(20px, env(safe-area-inset-bottom));
     display: flex;
     flex-direction: column;
+    transition: padding-top 0.2s ease;
+  }
+  /* Waehrend "Set anhoeren" (Media Session playbackState "playing") blendet iOS im
+     Status-Balken einen kompakten "Wird abgespielt"-Indikator ein, der mehr Platz
+     braucht als die normale Safe-Area. Zusaetzlicher Puffer nur in diesem Zustand,
+     damit der Rest der App nicht dauerhaft weiter nach unten rutscht. */
+  #app.audio-active {
+    padding-top: calc(max(24px, calc(env(safe-area-inset-top) + 6px)) + 22px);
   }
   #app::-webkit-scrollbar { display: none; }
   .screen { display: none; flex-direction: column; flex: 1; }
@@ -649,6 +663,14 @@ function stopListening() {
    Hintergrund-Seite und drosselt die JS-Ausführung, wodurch der "ended"-
    Callback, der das nächste Wort anstößt, nicht mehr zuverlässig feuert -
    die laufende Datei spielt zwar noch zu Ende, aber die Serie bricht danach ab. */
+/* Setzt/entfernt die CSS-Klasse, die #app zusaetzlichen Puffer unter der
+   Statusleiste gibt, solange iOS dort seinen "Wird abgespielt"-Indikator
+   zeigt (siehe Kommentar bei #app.audio-active oben). */
+function setStatusBarBuffer(active) {
+  const app = document.getElementById("app");
+  if (app) app.classList.toggle("audio-active", !!active);
+}
+
 function updateMediaSession(w) {
   if (!("mediaSession" in navigator)) return;
   navigator.mediaSession.metadata = new MediaMetadata({
@@ -657,15 +679,17 @@ function updateMediaSession(w) {
     album: "Flip"
   });
   navigator.mediaSession.playbackState = "playing";
+  setStatusBarBuffer(true);
 }
 function clearMediaSession() {
   if (!("mediaSession" in navigator)) return;
   navigator.mediaSession.metadata = null;
   navigator.mediaSession.playbackState = "none";
+  setStatusBarBuffer(false);
 }
 if ("mediaSession" in navigator) {
-  navigator.mediaSession.setActionHandler("play", () => { listenAudio.play(); navigator.mediaSession.playbackState = "playing"; });
-  navigator.mediaSession.setActionHandler("pause", () => { listenAudio.pause(); navigator.mediaSession.playbackState = "paused"; });
+  navigator.mediaSession.setActionHandler("play", () => { listenAudio.play(); navigator.mediaSession.playbackState = "playing"; setStatusBarBuffer(true); });
+  navigator.mediaSession.setActionHandler("pause", () => { listenAudio.pause(); navigator.mediaSession.playbackState = "paused"; setStatusBarBuffer(false); });
   navigator.mediaSession.setActionHandler("stop", () => stopListening());
   navigator.mediaSession.setActionHandler("nexttrack", () => { if (isListening) { listenIndex++; playNextInQueue(); } });
   navigator.mediaSession.setActionHandler("previoustrack", () => { if (isListening) { listenIndex = Math.max(0, listenIndex - 1); playNextInQueue(); } });
