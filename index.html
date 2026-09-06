@@ -80,24 +80,23 @@
     height: 100dvh;
     overflow-y: auto;
     scrollbar-width: none; -ms-overflow-style: none;
-    /* Etwas mehr Puffer als nur die reine Geraete-Safe-Area: env(safe-area-inset-top)
-       kennt nur die Ruheposition der Notch/Dynamic Island. Wenn iOS zusaetzlich einen
-       Status-Leisten-Indikator einblendet (z.B. das "Wird abgespielt"-Symbol waehrend
-       "Set anhoeren" laeuft, siehe audio-active weiter unten), wird die Leiste kurzzeitig
-       hoeher, ohne dass sich env(safe-area-inset-top) aendert - das hat vorher zum
-       Ueberlappen mit Uhrzeit/Akku gefuehrt. */
-    padding-top: max(24px, calc(env(safe-area-inset-top) + 6px));
+    /* iOS liefert env(safe-area-inset-top) auf dem iPhone von Cord (Dynamic Island)
+       offenbar nicht zuverlässig den echten Geräte-Wert (~59px) - der erste Fix mit
+       max(24px, ...) war deshalb noch nicht genug, weil effektiv nur die 24px
+       Fallback-Zahl griff. Deshalb jetzt ein fest großzügiger Sockelwert (59px,
+       Apples eigener Zielwert für Dynamic-Island-Geräte), plus env() nur als Bonus,
+       falls der echte Wert doch mal größer sein sollte. */
+    padding-top: max(59px, calc(env(safe-area-inset-top) + 10px));
     padding-bottom: max(20px, env(safe-area-inset-bottom));
     display: flex;
     flex-direction: column;
     transition: padding-top 0.2s ease;
   }
-  /* Waehrend "Set anhoeren" (Media Session playbackState "playing") blendet iOS im
-     Status-Balken einen kompakten "Wird abgespielt"-Indikator ein, der mehr Platz
-     braucht als die normale Safe-Area. Zusaetzlicher Puffer nur in diesem Zustand,
-     damit der Rest der App nicht dauerhaft weiter nach unten rutscht. */
+  /* Zusätzlicher, kleiner Sicherheitspuffer, falls doch mal während "Set anhören"
+     (Media Session playbackState "playing") ein Status-Leisten-Indikator zusätzlich
+     Platz braucht - siehe setStatusBarBuffer() weiter unten im Script. */
   #app.audio-active {
-    padding-top: calc(max(24px, calc(env(safe-area-inset-top) + 6px)) + 22px);
+    padding-top: calc(max(59px, calc(env(safe-area-inset-top) + 10px)) + 14px);
   }
   #app::-webkit-scrollbar { display: none; }
   .screen { display: none; flex-direction: column; flex: 1; }
