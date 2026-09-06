@@ -595,12 +595,25 @@ function renderHome() {
   }
 }
 
+/* #app ist der EINE scrollbare Container fuer Start- und Lernbildschirm (nur einer
+   davon ist per .active sichtbar, beide teilen sich aber denselben scrollTop). Wer
+   auf dem Startbildschirm erst nach unten gescrollt hat (z.B. um "Set lernen" zu
+   erreichen), landet beim Wechsel zum Lernbildschirm deshalb ohne dieses Reset an
+   genau der gleichen Scroll-Position - der neue Screen faengt dann quasi "abgeschnitten"
+   an und die eigene Topbar rutscht unter die Statusleiste. Fix: bei jedem Screen-
+   Wechsel #app hart auf scrollTop 0 zuruecksetzen. */
+function scrollAppToTop() {
+  const app = document.getElementById("app");
+  if (app) app.scrollTop = 0;
+}
+
 function goToHomeScreen() {
   stopCardAudio();
   previewSet = activeSet || SET_NAMES[0];
   document.getElementById("learn-screen").classList.remove("active");
   document.getElementById("home-screen").classList.add("active");
   renderHome();
+  scrollAppToTop();
 }
 document.getElementById("btn-back-home").addEventListener("click", goToHomeScreen);
 
@@ -862,6 +875,7 @@ function startSession(name) {
   document.getElementById("learn-screen").classList.add("active");
   renderLearnCarousel();
   renderCard();
+  scrollAppToTop();
 }
 function shuffle(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
